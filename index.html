@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flappy Bird Pixel Arcade Supreme</title>
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    margin: 0;
+    background: #090d16;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+  }
+  #wrap {
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    background: #70c5ce;
+  }
+  .ui-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 24px 28px;
+    border-radius: 18px;
+    text-align: center;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+    pointer-events: auto;
+    max-width: 330px;
+    width: 88%;
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 26px;
+    color: #1f2937;
+    letter-spacing: -0.5px;
+  }
+  p {
+    margin: 4px 0;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn {
+    margin-top: 14px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+    outline: none;
+  }
+  .btn:hover { transform: scale(1.04); }
+  .btn:active { transform: scale(0.96); }
+  .badge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #b45309;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 6px;
+  }
+  .skin-selector {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .skin-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+    background: #f3f4f6;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: transform 0.1s, border-color 0.1s;
+    position: relative;
+  }
+  .skin-btn.active {
+    border-color: #f59e0b;
+    background: #fef3c7;
+    transform: scale(1.08);
+  }
+  .skin-btn.locked {
+    opacity: 0.6;
+  }
+  .skin-btn.locked::after {
+    content: '🔒';
+    position: absolute;
+    font-size: 12px;
+    bottom: -2px;
+    right: -2px;
+  }
+  #pauseBtn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+    background: rgba(0,0,0,0.4);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    pointer-events: auto;
+    display: none;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <canvas id="game" width="400" height="600"></canvas>
+  <button id="pauseBtn">⏸</button>
+  
+  <!-- Start Screen -->
+  <div id="startScreen" class="ui-container">
+    <div class="card">
+      <h1>🐤 FLAPPY BIRD</h1>
+      <p style="color:#6b7280; font-weight: normal; font-size: 12px;">Arcade Supreme Edition</p>
+      
+      <p style="margin-top: 10px; font-size: 12px; color: #374151;">Bird Skins & Unlockables:</p>
+      <div class="skin-selector">
+        <div class="skin-btn active" id="skin-yellow" onclick="selectSkin('yellow')">🐤</div>
+        <div class="skin-btn" id="skin-red" onclick="selectSkin('red')">🦅</div>
+        <div class="skin-btn" id="skin-blue" onclick="selectSkin('blue')">🐦</div>
+        <div class="skin-btn" id="skin-gold" onclick="selectSkin('gold')">👑</div>
+      </div>
+      <p id="bankDisplay" style="font-size: 12px; color: #d97706; margin-top: 2px;">🪙 Total Bank: 0 Coins</p>
+
+      <div style="margin: 10px 0; font-size: 12px; color: #4b5563;">
+        Press <b>Space</b>, <b>Up Arrow</b>, or <b>Tap</b> to flap.<br>Press <b>P</b> to pause.
+      </div>
+      <button id="startBtn" class="btn">START GAME</button>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen" class="ui-container" style="display: none;">
+    <div class="card">
+      <h1 style="color: #dc2626;">GAME OVER</h1>
+      <p id="finalScore">Score: 0</p>
+      <p id="totalCoins">Coins Collected: +0</p>
+      <p id="bestScore">Best Score: 0</p>
+      <div id="newBestBadge" class="badge" style="display: none;">🎉 NEW HIGH SCORE!</div>
+      <br>
+      <button id="restartBtn" class="btn">PLAY AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const c = document.getElementById('game'), ctx = c.getContext('2d');
+const startScreen = document.getElementById('startScreen');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const finalScoreTxt = document.getElementById('finalScore');
+const totalCoinsTxt = document.getElementById('totalCoins');
+const bestScoreTxt = document.getElementById('bestScore');
+const newBestBadge = document.getElementById('newBestBadge');
+const bankDisplay = document.getElementById('bankDisplay');
+
+// Web Audio API Sound Synthesizer
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const t = audioCtx.currentTime;
+
+  if (type === 'jump') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(360, t);
+    osc.frequency.exponentialRampToValueAtTime(780, t + 0.08);
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+    osc.start(t); osc.stop(t + 0.08);
+  } else if (type === 'score') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(523.25, t);
+    osc.frequency.setValueAtTime(659.25, t + 0.07);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+    osc.start(t); osc.stop(t + 0.18);
+  } else if (type === 'hit') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.linearRampToValueAtTime(30, t + 0.22);
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+    osc.start(t); osc.stop(t + 0.22);
+  } else if (type === 'coin') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(987.77, t);
+    osc.frequency.setValueAtTime(1318.51, t + 0.08);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+    osc.start(t); osc.stop(t + 0.2);
+  } else if (type === 'powerup') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, t);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 0.15);
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+    osc.start(t); osc.stop(t + 0.15);
+  }
+}
+
+// Game State
+let score = 0, coins = 0, totalBank = +localStorage.getItem('flappy_supreme_bank') || 0;
+let best = +localStorage.getItem('flappy_supreme_best') || 0;
+let unlockedSkins = JSON.parse(localStorage.getItem('flappy_unlocked_skins')) || ['yellow'];
+let running = false, paused = false, frameCount = 0, shakeTime = 0;
+let selectedSkin = 'yellow';
+let shieldActive = false, shieldTimer = 0;
+
+const bird = { x: 90, y: 300, v: 0, r: 12, rot: 0 };
+const gravity = 0.32, jump = -6.2;
+
+let pipes = [], coinsList = [], powerupsList = [], particles = [], popups = [];
+let clouds = [
+  { x: 40, y: 60, speed: 0.3, scale: 0.8 },
+  { x: 200, y: 110, speed: 0.5, scale: 1.1 },
+  { x: 340, y: 70, speed: 0.2, scale: 0.7 }
+];
+
+// Pixel Map & Color Palettes for Skins
+const pixelSize = 2;
+const skinCosts = { yellow: 0, red: 15, blue: 30, gold: 50 };
+const skinPalettes = {
+  yellow: { 'Y': '#FFC800', 'O': '#FF7800', 'R': '#E02020' },
+  red:    { 'Y': '#EF4444', 'O': '#991B1B', 'R': '#FCA5A5' },
+  blue:   { 'Y': '#3B82F6', 'O': '#1E40AF', 'R': '#93C5FD' },
+  gold:   { 'Y': '#F59E0B', 'O': '#B45309', 'R': '#FEF08A' }
+};
+
+const birdSprites = [
+  ["......KKKKKK....","....KKYYKKKKK...","...KYYYYWWKKBK..","..KYYYYYWWKKKKK.",".KWWWWWYYWWKWWKK","KWWWWWWWYYKKKKKK","KWWWWWWWYYKRRRRK",".KWWWWWYYKKRRRRK","..KOOOOOOYYKKKKK","...KOOOOOOKKKK..","....KKKKKK......"],
+  ["......KKKKKK....","....KKYYKKKKK...","...KYYYYWWKKBK..","..KYYYYYWWKKKKK.",".KYYYYYYWWKWWKK.",".KWWWWWYYKKKKKK.","KWWWWWWWYYKRRRRK","KWWWWWWWYYKRRRRK",".KWWWWWYYKKKKKKK","..KOOOOOORRRRRK.","...KOOOOOOKKKK..","....KKKKKK......"],
+  ["......KKKKKK....","....KKYYKKKKK...","...KYYYYWWKKBK..","..KYYYYYWWKKKKK.",".KYYYYYYWWKWWKK.",".KYYYYYYYYKKKKKK","KWWWWWWWYYKRRRRK","KWWWWWWWYYKRRRRK",".KWWWWWYYKKKKKKK","..KOOOOOORRRRRK.","...KOOOOOOKKKK..","....KKKKKK......"]
+];
+
+function updateSkinUI() {
+  bankDisplay.innerText = `🪙 Total Bank: ${totalBank} Coins`;
+  ['yellow', 'red', 'blue', 'gold'].forEach(skin => {
+    const el = document.getElementById(`skin-${skin}`);
+    if (!el) return;
+    const isUnlocked = unlockedSkins.includes(skin);
+    el.classList.toggle('locked', !isUnlocked);
+    el.classList.toggle('active', selectedSkin === skin);
+  });
+}
+
+function selectSkin(skin) {
+  if (!unlockedSkins.includes(skin)) {
+    const cost = skinCosts[skin];
+    if (totalBank >= cost) {
+      totalBank -= cost;
+      unlockedSkins.push(skin);
+      localStorage.setItem('flappy_supreme_bank', totalBank);
+      localStorage.setItem('flappy_unlocked_skins', JSON.stringify(unlockedSkins));
+      selectedSkin = skin;
+    } else {
+      alert(`Need ${cost} coins to unlock this skin!`);
+      return;
+    }
+  } else {
+    selectedSkin = skin;
+  }
+  updateSkinUI();
+}
+
+function reset() {
+  score = 0; coins = 0; bird.y = 280; bird.v = 0; bird.rot = 0;
+  pipes = []; coinsList = []; powerupsList = []; particles = []; popups = []; 
+  frameCount = 0; shakeTime = 0; shieldActive = false; shieldTimer = 0;
+  
+  spawnPipe(450); spawnPipe(670);
+  running = true; paused = false;
+  startScreen.style.display = 'none';
+  gameOverScreen.style.display = 'none';
+  pauseBtn.style.display = 'block';
+  loop();
+}
+
+function flap() {
+  if (!running || paused) return;
+  bird.v = jump;
+  playSound('jump');
+
+  for (let i = 0; i < 4; i++) {
+    particles.push({
+      x: bird.x - 10, y: bird.y + (Math.random() * 8 - 4),
+      vx: -Math.random() * 2 - 1, vy: (Math.random() - 0.5) * 1.5,
+      life: 1.0, color: '#ffffff'
+    });
+  }
+}
+
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  pauseBtn.innerText = paused ? '▶' : '⏸';
+  if (!paused) loop();
+}
+
+function gameOver() {
+  running = false;
+  shakeTime = 18;
+  playSound('hit');
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+  totalBank += coins;
+  localStorage.setItem('flappy_supreme_bank', totalBank);
+
+  let isNewBest = false;
+  if (score > best) {
+    best = score;
+    localStorage.setItem('flappy_supreme_best', best);
+    isNewBest = true;
+  }
+
+  finalScoreTxt.innerText = `Score: ${score}`;
+  totalCoinsTxt.innerText = `Coins Collected: +${coins} (Bank: ${totalBank})`;
+  bestScoreTxt.innerText = `Best Score: ${best}`;
+  newBestBadge.style.display = isNewBest && score > 0 ? 'inline-block' : 'none';
+
+  pauseBtn.style.display = 'none';
+  gameOverScreen.style.display = 'flex';
+  updateSkinUI();
+}
+
+function spawnPipe(xPos) {
+  const gap = 145, gapY = 90 + Math.random() * 270;
+  pipes.push({ x: xPos, gapY: gapY, gap: gap, passed: false });
+
+  const rand = Math.random();
+  if (rand < 0.45) {
+    coinsList.push({ x: xPos + 30, y: gapY + gap / 2, collected: false, rot: 0 });
+  } else if (rand > 0.85) {
+    powerupsList.push({ x: xPos + 30, y: gapY + gap / 2, collected: false, type: 'shield' });
+  }
+}
+
+function addScorePopup(text, x, y, color = '#fbbf24') {
+  popups.push({ text, x, y, vy: -1.5, life: 1.0, color });
+}
+
+// Control Listeners
+startBtn.onclick = reset;
+restartBtn.onclick = reset;
+pauseBtn.onclick = togglePause;
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (!running && startScreen.style.display !== 'none') reset();
+    else if (!running && gameOverScreen.style.display !== 'none') reset();
+    else flap();
+  } else if (e.code === 'KeyP') togglePause();
+});
+
+c.addEventListener('touchstart', (e) => { e.preventDefault(); if (running) flap(); });
+c.addEventListener('mousedown', (e) => { if (running && e.target === c) flap(); });
+
+// Updates
+function update() {
+  frameCount++;
+  if (shakeTime > 0) shakeTime--;
+  if (shieldActive) {
+    shieldTimer--;
+    if (shieldTimer <= 0) shieldActive = false;
+  }
+
+  bird.v += gravity; bird.y += bird.v;
+  bird.rot = bird.v < 0 ? Math.max(-0.4, bird.rot - 0.08) : Math.min(1.2, bird.rot + 0.05);
+
+  if (bird.y - bird.r < 0 || bird.y + bird.r > 540) {
+    if (shieldActive) {
+      bird.v = -5; shieldActive = false;
+      addScorePopup('SAVED!', bird.x, bird.y, '#3b82f6');
+    } else {
+      gameOver(); return;
+    }
+  }
+
+  clouds.forEach(cl => { cl.x -= cl.speed; if (cl.x < -80) cl.x = 450; });
+
+  const pipeSpeed = 2.2 + Math.min(score * 0.05, 1.5);
+
+  pipes.forEach(p => {
+    p.x -= pipeSpeed;
+    const inX = bird.x + bird.r > p.x && bird.x - bird.r < p.x + 60;
+    const inY = bird.y - bird.r < p.gapY || bird.y + bird.r > p.gapY + p.gap;
+    
+    if (inX && inY) {
+      if (shieldActive) {
+        shieldActive = false;
+        p.gapY = -999; // Break pipe segment safely
+        playSound('powerup');
+        addScorePopup('SHIELD SMASH!', bird.x, bird.y, '#3b82f6');
+      } else {
+        gameOver();
+      }
+    }
+
+    if (!p.passed && p.x + 60 < bird.x) {
+      p.passed = true; score++;
+      playSound('score');
+      addScorePopup('+1', bird.x, bird.y - 20, '#ffffff');
+    }
+  });
+
+  if (pipes.length && pipes[0].x < -70) {
+    pipes.shift();
+    spawnPipe(pipes[pipes.length - 1].x + 210);
+  }
+
+  // Coins Update
+  coinsList.forEach(coin => {
+    coin.x -= pipeSpeed; coin.rot += 0.1;
+    if (!coin.collected && Math.hypot(bird.x - coin.x, bird.y - coin.y) < bird.r + 12) {
+      coin.collected = true; score += 2; coins++;
+      playSound('coin');
+      addScorePopup('+2', coin.x, coin.y - 10, '#fbbf24');
+
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x: coin.x, y: coin.y,
+          vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+          life: 1.0, color: '#fbbf24'
+        });
+      }
+    }
+  });
+  coinsList = coinsList.filter(c => c.x > -30 && !c.collected);
+
+  // Powerups Update
+  powerupsList.forEach(pw => {
+    pw.x -= pipeSpeed;
+    if (!pw.collected && Math.hypot(bird.x - pw.x, bird.y - pw.y) < bird.r + 14) {
+      pw.collected = true;
+      shieldActive = true; shieldTimer = 300; // 5 seconds shield
+      playSound('powerup');
+      addScorePopup('🛡️ SHIELD ACTIVE', pw.x, pw.y - 10, '#60a5fa');
+    }
+  });
+  powerupsList = powerupsList.filter(pw => pw.x > -30 && !pw.collected);
+
+  particles.forEach(pt => { pt.x += pt.vx; pt.y += pt.vy; pt.life -= 0.04; });
+  particles = particles.filter(pt => pt.life > 0);
+
+  popups.forEach(pop => { pop.y += pop.vy; pop.life -= 0.03; });
+  popups = popups.filter(pop => pop.life > 0);
+}
+
+// Rendering
+function drawPipe(x, topH, gap) {
+  const w = 60, rimH = 22, bottomY = topH + gap;
+  const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+  grad.addColorStop(0, '#22c55e'); grad.addColorStop(0.3, '#4ade80');
+  grad.addColorStop(0.8, '#16a34a'); grad.addColorStop(1, '#15803d');
+
+  ctx.fillStyle = grad; ctx.strokeStyle = '#0f5128'; ctx.lineWidth = 2.5;
+
+  if (topH > 0) {
+    ctx.fillRect(x, 0, w, topH); ctx.strokeRect(x, 0, w, topH);
+    ctx.fillRect(x - 4, topH - rimH, w + 8, rimH); ctx.strokeRect(x - 4, topH - rimH, w + 8, rimH);
+  }
+
+  ctx.fillRect(x, bottomY, w, 540 - bottomY); ctx.strokeRect(x, bottomY, w, 540 - bottomY);
+  ctx.fillRect(x - 4, bottomY, w + 8, rimH); ctx.strokeRect(x - 4, bottomY, w + 8, rimH);
+}
+
+function drawBird() {
+  ctx.save();
+  ctx.translate(bird.x, bird.y);
+  ctx.rotate(bird.rot);
+
+  // Shield Aura Effect
+  if (shieldActive) {
+    ctx.beginPath();
+    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(96, 165, 250, ${0.3 + Math.sin(frameCount * 0.2) * 0.15})`;
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.fill(); ctx.stroke();
+  }
+
+  let animFrame = bird.v < -1 ? 0 : bird.v > 2 ? 2 : Math.floor(frameCount / 6) % 3;
+  const sprite = birdSprites[animFrame];
+  const palette = skinPalettes[selectedSkin];
+
+  const offsetX = -(sprite[0].length * pixelSize) / 2;
+  const offsetY = -(sprite.length * pixelSize) / 2;
+
+  for (let row = 0; row < sprite.length; row++) {
+    for (let col = 0; col < sprite[row].length; col++) {
+      const char = sprite[row][col];
+      if (char !== '.') {
+        ctx.fillStyle = palette[char] || { 'K': '#000', 'W': '#FFF', 'B': '#90E0EF' }[char] || '#000';
+        ctx.fillRect(offsetX + col * pixelSize, offsetY + row * pixelSize, pixelSize, pixelSize);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawBackground() {
+  const isNight = Math.floor(score / 10) % 2 === 1;
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, 540);
+  skyGrad.addColorStop(0, isNight ? '#0f172a' : '#38bdf8');
+  skyGrad.addColorStop(1, isNight ? '#1e293b' : '#bae6fd');
+
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, 400, 600);
+
+  // Stars during Night Cycle
+  if (isNight) {
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillRect(50, 40, 2, 2); ctx.fillRect(180, 80, 3, 3);
+    ctx.fillRect(320, 50, 2, 2); ctx.fillRect(280, 120, 2, 2);
+  }
+
+  // Parallax City Skyline
+  ctx.fillStyle = isNight ? '#111827' : '#93c5fd';
+  for (let i = 0; i < 5; i++) {
+    ctx.fillRect(i * 90 - (frameCount * 0.2) % 90, 460, 60, 80);
+  }
+
+  // Clouds
+  clouds.forEach(cl => {
+    ctx.save(); ctx.translate(cl.x, cl.y); ctx.scale(cl.scale, cl.scale);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.arc(18, -6, 22, 0, Math.PI * 2);
+    ctx.arc(38, 0, 18, 0, Math.PI * 2);
+    ctx.fill(); ctx.restore();
+  });
+
+  // Ground & Grass
+  ctx.fillStyle = '#eab308'; ctx.fillRect(0, 540, 400, 60);
+  ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 540, 400, 12);
+}
+
+function draw() {
+  ctx.save();
+  if (shakeTime > 0) {
+    ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+  }
+
+  drawBackground();
+  pipes.forEach(p => drawPipe(p.x, p.gapY, p.gap));
+  
+  // Draw Coins
+  coinsList.forEach(coin => {
+    ctx.save();
+    ctx.translate(coin.x, coin.y); ctx.scale(Math.cos(coin.rot), 1);
+    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+
+  // Draw Powerups
+  powerupsList.forEach(pw => {
+    ctx.save();
+    ctx.translate(pw.x, pw.y);
+    ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('🛡️', 0, 4);
+    ctx.restore();
+  });
+
+  // Particles
+  particles.forEach(pt => {
+    ctx.fillStyle = pt.color; ctx.globalAlpha = Math.max(0, pt.life);
+    ctx.fillRect(pt.x, pt.y, 4, 4); ctx.globalAlpha = 1.0;
+  });
+
+  // Popups
+  popups.forEach(pop => {
+    ctx.fillStyle = pop.color; ctx.globalAlpha = Math.max(0, pop.life);
+    ctx.font = 'bold 18px sans-serif'; ctx.fillText(pop.text, pop.x, pop.y);
+    ctx.globalAlpha = 1.0;
+  });
+
+  drawBird();
+
+  // HUD
+  if (running) {
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#000000'; ctx.lineWidth = 4;
+    ctx.font = '900 36px sans-serif'; ctx.textAlign = 'center';
+    ctx.strokeText(score, 200, 60); ctx.fillText(score, 200, 60);
+  }
+
+  ctx.restore();
+}
+
+function loop() {
+  if (!running || paused) { draw(); return; }
+  update(); draw();
+  if (running && !paused) requestAnimationFrame(loop);
+}
+
+updateSkinUI();
+draw();
+</script>
+</body>
+</html>
